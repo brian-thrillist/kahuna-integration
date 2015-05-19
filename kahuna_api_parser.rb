@@ -15,11 +15,26 @@ http = Net::HTTP.new(url.host, url.port)
 http.use_ssl = true
 # http.set_debug_output STDOUT # for debugging
 
-request = Net::HTTP::Post.new(url, headers)
-request.basic_auth("<secret>", "<password>")
+params = {
+  "number_of_records"     => 1000,
+  "categories_to_return"  => [ "push" ],
+  "timestamp"             => "05/06/2015"
+}
 
-response = http.request request, '{"number_of_records" : 10, "categories_to_return" : [ "push" ], "timestamp" : "05/06/2015" }'
+more_records = true
+mode = 'write'
 
-hash = JSON.parse(response.body)
-HashToCSV::convert(hash['push'], '/tmp/kahuna_data.csv')
+while more_records
+  request = Net::HTTP::Post.new(url, headers)
+  request.basic_auth("<secret>", "<password>")
+
+  response = http.request(request, params.to_json)
+  response_data = JSON.parse(response.body)
+  HashToCSV::convert(response_data['push'], '/tmp/kahuna_data.csv', mode: mode)
+
+  mode = :append
+  params.delete "timestamp"
+  more_records = !!response_data['more_records']
+  params['cursor'] = response_data['cursor']
+end
 
