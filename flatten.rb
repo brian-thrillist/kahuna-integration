@@ -27,7 +27,10 @@ module HashToCSV
     new_hash
   end
 
-  def self.convert(hash, filepath)
+  # this method does all the work
+  def self.convert(hash, filepath, options={})
+    parse_options(options)
+
     csv    = {}
     index  = -1
 
@@ -42,15 +45,23 @@ module HashToCSV
     headers = csv.keys
     max_index = index # after it's been used for iteration
 
-    File.open(filepath, 'w') do |f|
+    File.open(filepath, @mode) do |f|
       f.puts headers.join(',')
       0.upto(max_index).each do |i|
-        csv.each do |header, element|
-          f.print(element[i])
-          f.print ',' # currently adds an extra ','
-        end
-        f.puts ""
+        row = csv.map { |header, element| element[i] }
+        f.puts row.join(',')
       end
+    end
+  end
+
+  protected
+
+  def self.parse_options(options)
+    # set mode for file opening
+    if ['a', 'append', :append].include?(options[:mode])
+      @mode = 'a'
+    else
+      @mode = 'w'
     end
   end
 end
